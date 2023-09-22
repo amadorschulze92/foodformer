@@ -1,0 +1,33 @@
+name: Build-and-push-to-ecr
+on: [push]
+
+jobs: 
+    build-and-push:
+        runs-on: ubuntu-latest
+        steps:
+        -   uses: actions/checkout@v3
+        -   name: Configure AWS credentials
+            uses: aws-actions/configure-aws-credentials@v1
+            with: 
+              aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+              aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+              aws-region: "us-east-2"
+        -   name: Install W&B
+            run: pip install wandb
+        -   name: Download model
+            env:
+              WANDB_API_KEY: ${{ secrets.WANDB_API_KEY}} 
+            run: python ./serving/download_model.py
+        -   name: Login to Amazon ECR
+            id: login-ecr
+            uses: aws-actions/amazon-ecr-login@v1
+            registry: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazon.com
+        -   name: Build, tag, and push image to Amazon ECR
+            id: build-image
+            with:
+              ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazon.com
+              ECR_REPOSITORY: my-ecr-repo
+              IMAGE_TAG: ${{ github.sha }}
+            run: |
+              docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
+              docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
