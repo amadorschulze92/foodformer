@@ -1,7 +1,7 @@
 from functools import partial
 from io import BytesIO
 from pathlib import Path
-
+import pytorch_lightning as pl
 import torch
 import uvicorn
 from fastapi import FastAPI, File, UploadFile
@@ -10,13 +10,19 @@ from PIL import Image
 from pydantic import BaseModel
 from torch.nn.functional import softmax
 from transformers import ViTImageProcessor
+import wandb
 
 
 class ClassPredictions(BaseModel):
     predictions: dict[str, float]
 
+class LitModule(pl.LightningModule):
+    def __init__(self):
+        self.save_hyperparameters()
+
 
 app = FastAPI()
+
 
 model_name_or_path = "google/vit-base-patch16-224-in21k"
 feature_extractor = ViTImageProcessor.from_pretrained(model_name_or_path)
@@ -31,13 +37,8 @@ def read_imagefile(file: bytes) -> Image.Image:
     return Image.open(BytesIO(file))
 
 
-# package_path = Path(__file__).parent.parent
-
-# MODEL_PATH = package_path / "models/model.ckpt"
-
 package_path = Path(__file__).parent
-
-MODEL_PATH = package_path / "model.ckpt"
+MODEL_PATH = package_path / "artifacts" / "vis_trans:v0" / "model.ckpt"
 
 
 def load_model(model_path: str | Path = MODEL_PATH) -> torch.nn.Module:
