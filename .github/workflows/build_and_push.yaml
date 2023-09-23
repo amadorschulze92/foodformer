@@ -27,7 +27,7 @@ jobs:
         -   name: Build, tag, and push image to Amazon ECR
             id: build-image
             env:
-              ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazon.com
+              ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazonaws.com
               ECR_REPOSITORY: foodformer
               IMAGE_TAG: ${{ github.sha }}
             run: |
