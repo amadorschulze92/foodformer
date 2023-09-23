@@ -28,7 +28,7 @@ jobs:
             id: build-image
             env:
               ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazon.com
-              ECR_REPOSITORY: my-ecr-repo
+              ECR_REPOSITORY: foodformer
               IMAGE_TAG: ${{ github.sha }}
             run: |
               docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
