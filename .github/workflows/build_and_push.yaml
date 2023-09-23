@@ -26,7 +26,7 @@ jobs:
               mask-password: 'true'
         -   name: Build, tag, and push image to Amazon ECR
             id: build-image
-            with:
+            env:
               ECR_REGISTRY: ${{ secrets.AWS_ACCOUNT_ID }}.dkr.ecr.us-east-2.amazon.com
               ECR_REPOSITORY: my-ecr-repo
               IMAGE_TAG: ${{ github.sha }}
