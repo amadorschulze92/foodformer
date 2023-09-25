@@ -82,6 +82,7 @@ def get_root() -> dict:
 @app.post("/predict", response_model=ClassPredictions)
 async def predict_api(file: UploadFile = File(...)) -> ClassPredictions:
     # log timing and network
+    logger.info(f"Predict endpoint started timing")
     started_at = time.time()
     io_1 = psutil.net_io_counters()
     bytes_sent, bytes_recv = io_1.bytes_sent, io_1.bytes_recv
@@ -97,10 +98,12 @@ async def predict_api(file: UploadFile = File(...)) -> ClassPredictions:
     image = read_imagefile(await file.read())
 
     # process and predict
+    logger.info(f"Predict endpoint processed image")
     x = preprocess_image(image)
     predictions = predict(x)
 
     # finish logging time and network
+    logger.info(f"Predict endpoint logging info")
     io_2 = psutil.net_io_counters()
     us, ds = io_2.bytes_sent - bytes_sent, io_2.bytes_recv - bytes_recv
     total_time = time.time() - started_at
