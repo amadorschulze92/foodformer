@@ -19,10 +19,6 @@ import psutil
 class ClassPredictions(BaseModel):
     predictions: dict[str, float]
 
-class LitModule(pl.LightningModule):
-    def __init__(self):
-        self.save_hyperparameters()
-
 
 app = FastAPI()
 
