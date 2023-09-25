@@ -11,6 +11,9 @@ from pydantic import BaseModel
 from torch.nn.functional import softmax
 from transformers import ViTImageProcessor
 import wandb
+import time
+import json
+import psutil
 
 
 class ClassPredictions(BaseModel):
@@ -24,11 +27,6 @@ class LitModule(pl.LightningModule):
 app = FastAPI()
 
 
-model_name_or_path = "google/vit-base-patch16-224-in21k"
-feature_extractor = ViTImageProcessor.from_pretrained(model_name_or_path)
-preprocessor = partial(feature_extractor, return_tensors="pt")
-
-
 def preprocess_image(image: Image.Image) -> torch.tensor:
     return preprocessor([image])["pixel_values"]
 
@@ -36,6 +34,18 @@ def preprocess_image(image: Image.Image) -> torch.tensor:
 def read_imagefile(file: bytes) -> Image.Image:
     return Image.open(BytesIO(file))
 
+def get_size(bytes):
+    """Returns size of bytes in a nice format"""
+    for unit in ['', 'K', 'M', 'G', 'T', 'P']:
+        if bytes < 1024:
+            return f"{bytes:.2f}{unit}B"
+        bytes /= 1024
+
+
+# modeling stuff
+model_name_or_path = "google/vit-base-patch16-224-in21k"
+feature_extractor = ViTImageProcessor.from_pretrained(model_name_or_path)
+preprocessor = partial(feature_extractor, return_tensors="pt")
 
 package_path = Path(__file__).parent
 MODEL_PATH = package_path / "artifacts" / "vis_trans:v0" / "model.ckpt"
@@ -61,6 +71,8 @@ def predict(x: torch.tensor, labels: list = labels) -> dict:
     return return_dict
 
 
+
+# web stuff
 @app.get("/")
 def get_root() -> dict:
     logger.info("Received request on the root endpoint")
@@ -69,18 +81,40 @@ def get_root() -> dict:
 
 @app.post("/predict", response_model=ClassPredictions)
 async def predict_api(file: UploadFile = File(...)) -> ClassPredictions:
-    logger.info(f"Predict endpoint received image {file.filename}")
+    # log timing and network
+    started_at = time.time()
+    io_1 = psutil.net_io_counters()
+    bytes_sent, bytes_recv = io_1.bytes_sent, io_1.bytes_recv
 
+    # get file
+    logger.info(f"Predict endpoint received image {file.filename}")
     file_extension = file.filename.split(".")[-1]
     valid_extensions = ("jpg", "jpeg", "png")
     if file_extension not in valid_extensions:
         raise TypeError(
             f"File extension for {file.filename} should be one of {valid_extensions}"
         )
-
     image = read_imagefile(await file.read())
+
+    # process and predict
     x = preprocess_image(image)
-    return ClassPredictions(predictions=predict(x))
+    predictions = predict(x)
+
+    # finish logging time and network
+    io_2 = psutil.net_io_counters()
+    us, ds = io_2.bytes_sent - bytes_sent, io_2.bytes_recv - bytes_recv
+    total_time = time.time() - started_at
+
+    log = {
+        "message": f"predictions for {file.filename}: {predictions}",
+        "top_class": list(predictions.keys())[0],
+        "score": list(predictions.values())[0],
+        "latency": total_time,
+        "upload_speed": get_size(us / total_time),
+        "download_speed": get_size(ds / total_time)
+    }
+    logger.info(json.dumps(log))
+    return ClassPredictions(predictions=predictions)
 
 
 if __name__ == "__main__":
