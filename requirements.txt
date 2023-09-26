@@ -11,3 +11,4 @@ pytorch-lightning==2.0.8
 torchmetrics==1.1.1
 transformers==4.32.1
 uvicorn==0.23.2
+wandb==0.15.10
