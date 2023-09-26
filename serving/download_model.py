@@ -6,7 +6,8 @@ import os
 # package_path = Path(__file__).parent
 run = wandb.init()
 model_path = wandb.use_artifact("amadorschulze92/Foodformer/vis_trans:production").download()
-# change path name so no ':'
+
+# change path name so no ':' since python reads colons as delimiters
 print(model_path)
 new_path = model_path.replace(':', "_")
 if not os.path.exists(new_path):
