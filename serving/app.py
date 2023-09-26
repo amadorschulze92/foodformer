@@ -44,7 +44,7 @@ feature_extractor = ViTImageProcessor.from_pretrained(model_name_or_path)
 preprocessor = partial(feature_extractor, return_tensors="pt")
 
 package_path = Path(__file__).parent
-MODEL_PATH = package_path / "artifacts" / "vis_trans\:v0" / "model.ckpt"
+MODEL_PATH = package_path / "artifacts" / "vis_trans\/v0" / "model.ckpt"
 
 
 def load_model(model_path: str | Path = MODEL_PATH) -> torch.nn.Module:
