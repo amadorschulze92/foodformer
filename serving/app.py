@@ -14,6 +14,7 @@ import wandb
 import time
 import json
 import psutil
+import gradio as gr
 
 
 class ClassPredictions(BaseModel):
@@ -61,7 +62,6 @@ model, labels = load_model()
 def predict(x: torch.tensor, labels: list = labels) -> dict:
     logits = model(x).logits
     probas = softmax(logits, dim=1)
-
     values, indices = torch.topk(probas[0], 5)
     return_dict = {labels[int(i)]: float(v) for i, v in zip(indices, values)}
     return return_dict
@@ -78,7 +78,6 @@ def get_root() -> dict:
 @app.post("/predict", response_model=ClassPredictions)
 async def predict_api(file: UploadFile = File(...)) -> ClassPredictions:
     # log timing and network
-    logger.info(f"Predict endpoint started timing")
     started_at = time.time()
     io_1 = psutil.net_io_counters()
     bytes_sent, bytes_recv = io_1.bytes_sent, io_1.bytes_recv
@@ -114,6 +113,24 @@ async def predict_api(file: UploadFile = File(...)) -> ClassPredictions:
     }
     logger.info(json.dumps(log))
     return ClassPredictions(predictions=predictions)
+
+
+# gradio app
+def gradio_predict(inp):
+    x = preprocess_image(inp)
+    predictions = predict(x)
+    all_predictions = {list(predictions.keys())[i]: float(list(predictions.values())[i]) for i in range(5)}
+    return all_predictions
+
+demo = gr.Interface(
+    fn=gradio_predict,
+    inputs=gr.Image(shape=(224, 224), source="webcam", label="Upload Image or Capture from Webcam"),
+    outputs=gr.Label(num_top_classes=5, label="Predicted Class"),
+    live=False
+)
+
+app = gr.mount_gradio_app(app, demo, path='/gradio')
+
 
 
 if __name__ == "__main__":
