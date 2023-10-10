@@ -127,7 +127,7 @@ demo = gr.Interface(
     inputs=gr.Image(shape=(224, 224), source="upload", label="Upload Image or Capture from Webcam"),
     outputs=gr.Label(num_top_classes=5, label="Predicted Class"),
     live=False
-).launch()
+)
 
 app = gr.mount_gradio_app(app, demo, path='/gradio')
 
